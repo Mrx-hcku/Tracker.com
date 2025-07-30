@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Phone Tracker</title>
+  <link rel="stylesheet" href="style.css"/>
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+</head>
+<body>
+  <div class="container">
+    <div id="auth" class="card">
+      <h2>📍 Phone Tracker</h2>
+      <input type="text" id="username" placeholder="Username" />
+      <input type="password" id="password" placeholder="Password" />
+      <button onclick="login()">Login</button>
+      <p id="register-toggle" onclick="showRegister()">Create an account</p>
+    </div>
+
+    <div id="register" class="card hidden">
+      <h2>🚀 Register</h2>
+      <input type="text" id="reg_username" placeholder="Username" />
+      <input type="password" id="reg_password" placeholder="Password" />
+      <button onclick="register()">Register</button>
+      <p id="login-toggle" onclick="showLogin()">Already have an account?</p>
+    </div>
+
+    <div id="dashboard" class="hidden">
+      <div class="top-bar">
+        <h2>Live Phone Tracker</h2>
+        <button onclick="logout()">Logout</button>
+      </div>
+      <div id="map"></div>
+    </div>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
