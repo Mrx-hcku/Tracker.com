@@ -3,39 +3,184 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Phone Tracker</title>
-  <link rel="stylesheet" href="style.css"/>
-  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+  <title>Location Tracker</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #f5f5f5;
+      margin: 0;
+      padding: 0;
+    }
+    .container {
+      max-width: 400px;
+      margin: 50px auto;
+      padding: 30px;
+      background: #fff;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      border-radius: 8px;
+    }
+    h2 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    input {
+      width: 100%;
+      padding: 12px;
+      margin: 10px 0;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+    }
+    button {
+      width: 100%;
+      padding: 12px;
+      background: #007bff;
+      color: white;
+      border: none;
+      margin-top: 10px;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #0056b3;
+    }
+    .toggle {
+      text-align: center;
+      margin-top: 15px;
+    }
+    .toggle a {
+      color: #007bff;
+      cursor: pointer;
+      text-decoration: none;
+    }
+    #message {
+      margin-top: 10px;
+      color: green;
+      text-align: center;
+    }
+  </style>
 </head>
 <body>
-  <div class="container">
-    <div id="auth" class="card">
-      <h2>📍 Phone Tracker</h2>
-      <input type="text" id="username" placeholder="Username" />
-      <input type="password" id="password" placeholder="Password" />
-      <button onclick="login()">Login</button>
-      <p id="register-toggle" onclick="showRegister()">Create an account</p>
-    </div>
 
-    <div id="register" class="card hidden">
-      <h2>🚀 Register</h2>
-      <input type="text" id="reg_username" placeholder="Username" />
-      <input type="password" id="reg_password" placeholder="Password" />
-      <button onclick="register()">Register</button>
-      <p id="login-toggle" onclick="showLogin()">Already have an account?</p>
-    </div>
-
-    <div id="dashboard" class="hidden">
-      <div class="top-bar">
-        <h2>Live Phone Tracker</h2>
-        <button onclick="logout()">Logout</button>
-      </div>
-      <div id="map"></div>
-    </div>
+  <div class="container" id="register-box">
+    <h2>Register</h2>
+    <input type="text" id="reg-username" placeholder="Username" />
+    <input type="password" id="reg-password" placeholder="Password" />
+    <button onclick="register()">Register</button>
+    <div class="toggle">Already have an account? <a onclick="showLogin()">Login</a></div>
+    <div id="register-message"></div>
   </div>
 
-  <script src="script.js"></script>
+  <div class="container" id="login-box" style="display: none;">
+    <h2>Login</h2>
+    <input type="text" id="login-username" placeholder="Username" />
+    <input type="password" id="login-password" placeholder="Password" />
+    <button onclick="login()">Login</button>
+    <div class="toggle">Don't have an account? <a onclick="showRegister()">Register</a></div>
+    <div id="login-message"></div>
+  </div>
+
+  <div class="container" id="location-box" style="display: none;">
+    <h2>Welcome</h2>
+    <button onclick="sendLocation()">Send Location</button>
+    <div id="location-message"></div>
+    <button onclick="logout()">Logout</button>
+  </div>
+
+  <script>
+    const BASE_URL = "https://tracker-5shn.onrender.com";
+
+    function showLogin() {
+      document.getElementById('register-box').style.display = 'none';
+      document.getElementById('login-box').style.display = 'block';
+    }
+
+    function showRegister() {
+      document.getElementById('login-box').style.display = 'none';
+      document.getElementById('register-box').style.display = 'block';
+    }
+
+    function showLocationBox() {
+      document.getElementById('register-box').style.display = 'none';
+      document.getElementById('login-box').style.display = 'none';
+      document.getElementById('location-box').style.display = 'block';
+    }
+
+    function register() {
+      const username = document.getElementById("reg-username").value;
+      const password = document.getElementById("reg-password").value;
+      fetch(`${BASE_URL}/api/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password })
+      })
+      .then(res => res.json())
+      .then(data => {
+        document.getElementById("register-message").innerText = data.message || "Registered!";
+        if (data.token) {
+          localStorage.setItem("token", data.token);
+          showLocationBox();
+        }
+      })
+      .catch(err => console.error(err));
+    }
+
+    function login() {
+      const username = document.getElementById("login-username").value;
+      const password = document.getElementById("login-password").value;
+      fetch(`${BASE_URL}/api/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password })
+      })
+      .then(res => res.json())
+      .then(data => {
+        document.getElementById("login-message").innerText = data.message || "Logged in!";
+        if (data.token) {
+          localStorage.setItem("token", data.token);
+          showLocationBox();
+        }
+      })
+      .catch(err => console.error(err));
+    }
+
+    function sendLocation() {
+      if (!navigator.geolocation) {
+        alert("Geolocation is not supported by your browser.");
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(position => {
+        const { latitude, longitude } = position.coords;
+        const token = localStorage.getItem("token");
+        fetch(`${BASE_URL}/api/location`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify({ latitude, longitude })
+        })
+        .then(res => res.json())
+        .then(data => {
+          document.getElementById("location-message").innerText = data.message || "Location sent!";
+        })
+        .catch(err => console.error(err));
+      }, error => {
+        alert("Unable to retrieve your location.");
+      });
+    }
+
+    function logout() {
+      localStorage.removeItem("token");
+      document.getElementById("location-box").style.display = "none";
+      document.getElementById("login-box").style.display = "block";
+    }
+
+    // Auto-login if token exists
+    if (localStorage.getItem("token")) {
+      showLocationBox();
+    }
+  </script>
+
 </body>
 </html>
