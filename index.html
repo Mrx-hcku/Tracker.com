@@ -2,184 +2,169 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Location Tracker</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Live Tracker</title>
   <style>
+    * {
+      margin: 0; padding: 0; box-sizing: border-box;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
     body {
-      font-family: sans-serif;
-      background: #f5f5f5;
-      margin: 0;
-      padding: 0;
+      background: linear-gradient(to right, #141e30, #243b55);
+      color: #fff;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
     }
     .container {
-      max-width: 400px;
-      margin: 50px auto;
+      background: rgba(255, 255, 255, 0.05);
       padding: 30px;
-      background: #fff;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
-      border-radius: 8px;
+      border-radius: 20px;
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.6);
+      width: 320px;
+      transition: all 0.4s ease;
     }
     h2 {
       text-align: center;
       margin-bottom: 20px;
+      font-size: 28px;
+      color: #00d4ff;
     }
     input {
       width: 100%;
       padding: 12px;
       margin: 10px 0;
-      border: 1px solid #ddd;
-      border-radius: 5px;
+      border: none;
+      border-radius: 10px;
+      background: rgba(255,255,255,0.2);
+      color: white;
+      font-size: 16px;
+      outline: none;
+      transition: background 0.3s ease;
+    }
+    input:focus {
+      background: rgba(255,255,255,0.3);
     }
     button {
       width: 100%;
       padding: 12px;
-      background: #007bff;
-      color: white;
       border: none;
-      margin-top: 10px;
-      border-radius: 5px;
+      border-radius: 10px;
+      background: #00d4ff;
+      color: #000;
+      font-weight: bold;
       cursor: pointer;
+      font-size: 16px;
+      margin-top: 10px;
+      transition: background 0.3s ease, transform 0.2s ease;
     }
     button:hover {
-      background: #0056b3;
+      background: #00a9cc;
+      transform: scale(1.03);
     }
-    .toggle {
-      text-align: center;
+    .message {
       margin-top: 15px;
-    }
-    .toggle a {
-      color: #007bff;
-      cursor: pointer;
-      text-decoration: none;
-    }
-    #message {
-      margin-top: 10px;
-      color: green;
       text-align: center;
+      font-size: 14px;
+      color: #ffcc00;
+      min-height: 20px;
     }
   </style>
 </head>
 <body>
-
-  <div class="container" id="register-box">
-    <h2>Register</h2>
-    <input type="text" id="reg-username" placeholder="Username" />
-    <input type="password" id="reg-password" placeholder="Password" />
+  <div class="container">
+    <h2>Live Tracker</h2>
+    <input type="text" id="username" placeholder="Username" />
+    <input type="password" id="password" placeholder="Password" />
     <button onclick="register()">Register</button>
-    <div class="toggle">Already have an account? <a onclick="showLogin()">Login</a></div>
-    <div id="register-message"></div>
-  </div>
-
-  <div class="container" id="login-box" style="display: none;">
-    <h2>Login</h2>
-    <input type="text" id="login-username" placeholder="Username" />
-    <input type="password" id="login-password" placeholder="Password" />
     <button onclick="login()">Login</button>
-    <div class="toggle">Don't have an account? <a onclick="showRegister()">Register</a></div>
-    <div id="login-message"></div>
-  </div>
-
-  <div class="container" id="location-box" style="display: none;">
-    <h2>Welcome</h2>
-    <button onclick="sendLocation()">Send Location</button>
-    <div id="location-message"></div>
-    <button onclick="logout()">Logout</button>
+    <div class="message" id="messageBox"></div>
   </div>
 
   <script>
     const BASE_URL = "https://tracker-5shn.onrender.com";
+    let token = "";
 
-    function showLogin() {
-      document.getElementById('register-box').style.display = 'none';
-      document.getElementById('login-box').style.display = 'block';
-    }
-
-    function showRegister() {
-      document.getElementById('login-box').style.display = 'none';
-      document.getElementById('register-box').style.display = 'block';
-    }
-
-    function showLocationBox() {
-      document.getElementById('register-box').style.display = 'none';
-      document.getElementById('login-box').style.display = 'none';
-      document.getElementById('location-box').style.display = 'block';
+    function showMessage(msg, color = '#ffcc00') {
+      const el = document.getElementById("messageBox");
+      el.style.color = color;
+      el.innerText = msg;
     }
 
     function register() {
-      const username = document.getElementById("reg-username").value;
-      const password = document.getElementById("reg-password").value;
-      fetch(`${BASE_URL}/register`, {
+      const username = document.getElementById("username").value;
+      const password = document.getElementById("password").value;
+      if (!username || !password) return showMessage("Fill all fields");
+
+      fetch(`${BASE_URL}/api/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password })
       })
       .then(res => res.json())
       .then(data => {
-        document.getElementById("register-message").innerText = data.message || "Registered!";
         if (data.token) {
-          localStorage.setItem("token", data.token);
-          showLocationBox();
+          token = data.token;
+          showMessage("Registered successfully", "#00ff99");
+          startTracking();
+        } else {
+          showMessage(data.error || "Registration failed", "#ff6666");
         }
       })
-      .catch(err => console.error(err));
+      .catch(() => showMessage("Server error", "#ff6666"));
     }
 
     function login() {
-      const username = document.getElementById("login-username").value;
-      const password = document.getElementById("login-password").value;
-      fetch(`${BASE_URL}/login`, {
+      const username = document.getElementById("username").value;
+      const password = document.getElementById("password").value;
+      if (!username || !password) return showMessage("Fill all fields");
+
+      fetch(`${BASE_URL}/api/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password })
       })
       .then(res => res.json())
       .then(data => {
-        document.getElementById("login-message").innerText = data.message || "Logged in!";
         if (data.token) {
-          localStorage.setItem("token", data.token);
-          showLocationBox();
+          token = data.token;
+          showMessage("Login successful", "#00ff99");
+          startTracking();
+        } else {
+          showMessage(data.error || "Login failed", "#ff6666");
         }
       })
-      .catch(err => console.error(err));
+      .catch(() => showMessage("Server error", "#ff6666"));
     }
 
-    function sendLocation() {
+    function startTracking() {
       if (!navigator.geolocation) {
-        alert("Geolocation is not supported by your browser.");
-        return;
+        return showMessage("Geolocation not supported", "#ff6666");
       }
 
-      navigator.geolocation.getCurrentPosition(position => {
-        const { latitude, longitude } = position.coords;
-        const token = localStorage.getItem("token");
-        fetch(`${BASE_URL}/location`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`
+      showMessage("Tracking started...", "#00ffcc");
+
+      setInterval(() => {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            const { latitude, longitude } = pos.coords;
+
+            fetch(`${BASE_URL}/api/location`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${token}`
+              },
+              body: JSON.stringify({ latitude, longitude })
+            }).catch(() => {});
           },
-          body: JSON.stringify({ latitude, longitude })
-        })
-        .then(res => res.json())
-        .then(data => {
-          document.getElementById("location-message").innerText = data.message || "Location sent!";
-        })
-        .catch(err => console.error(err));
-      }, error => {
-        alert("Unable to retrieve your location.");
-      });
-    }
-
-    function logout() {
-      localStorage.removeItem("token");
-      document.getElementById("location-box").style.display = "none";
-      document.getElementById("login-box").style.display = "block";
-    }
-
-    if (localStorage.getItem("token")) {
-      showLocationBox();
+          (err) => {
+            showMessage("Location error: " + err.message, "#ff6666");
+          }
+        );
+      }, 15000); // 15 sec
     }
   </script>
-
 </body>
 </html>
