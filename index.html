@@ -102,17 +102,17 @@
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password })
       })
-      .then(res => res.json())
-      .then(data => {
-        if (data.token) {
+      .then(async res => {
+        const data = await res.json().catch(() => ({}));
+        if (res.ok && data.token) {
           token = data.token;
           showMessage("Registered successfully", "#00ff99");
           startTracking();
         } else {
-          showMessage(data.error || "Registration failed", "#ff6666");
+          showMessage(data.error || `Error ${res.status}: ${res.statusText}`, "#ff6666");
         }
       })
-      .catch(() => showMessage("Server error", "#ff6666"));
+      .catch(err => showMessage("Network error: " + err.message, "#ff6666"));
     }
 
     function login() {
@@ -125,17 +125,17 @@
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password })
       })
-      .then(res => res.json())
-      .then(data => {
-        if (data.token) {
+      .then(async res => {
+        const data = await res.json().catch(() => ({}));
+        if (res.ok && data.token) {
           token = data.token;
           showMessage("Login successful", "#00ff99");
           startTracking();
         } else {
-          showMessage(data.error || "Login failed", "#ff6666");
+          showMessage(data.error || `Error ${res.status}: ${res.statusText}`, "#ff6666");
         }
       })
-      .catch(() => showMessage("Server error", "#ff6666"));
+      .catch(err => showMessage("Network error: " + err.message, "#ff6666"));
     }
 
     function startTracking() {
@@ -157,7 +157,9 @@
                 "Authorization": `Bearer ${token}`
               },
               body: JSON.stringify({ latitude, longitude })
-            }).catch(() => {});
+            }).catch((err) => {
+              showMessage("Location post failed: " + err.message, "#ff6666");
+            });
           },
           (err) => {
             showMessage("Location error: " + err.message, "#ff6666");
